@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>inDrive Pulse - Urban Mobility Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .kpi-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #845EC2;
+        }
+        .kpi-label {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #4A5568;
+            margin-top: 0.5rem;
+        }
+        .flowchart-node {
+            background-color: #C4FCEF;
+            border: 2px solid #00C9A7;
+            color: #0d5e50;
+            font-weight: 600;
+        }
+        .flowchart-arrow {
+            color: #845EC2;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        #gemini-output {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-style: italic;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #845EC2;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900">inDrive Pulse</h1>
+            <p class="mt-3 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">Аналитическая панель для интеллектуального управления городской мобильностью на основе анонимизированных геоданных.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <div class="kpi-card">
+                <div class="kpi-value">1.5M+</div>
+                <div class="kpi-label">Анонимных треков</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">+18%</div>
+                <div class="kpi-label">Прогноз роста спроса</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">-12%</div>
+                <div class="kpi-label">Сокращение времени подачи</div>
+            </div>
+        </div>
+        
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-1 text-gray-900">Карта спроса по районам</h2>
+                <p class="text-gray-600 mb-4">Визуализация помогает определить "горячие" точки с наибольшим количеством заказов для оптимизации распределения водителей. Размер круга соответствует объему спроса в условных единицах.</p>
+                <div class="chart-container h-96 max-h-[500px]">
+                    <canvas id="demandHotspotsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-1 text-gray-900">Пиковые часы нагрузки</h2>
+                <p class="text-gray-600 mb-4">Анализ распределения поездок в течение суток. Четко видны утренние и вечерние пики, что позволяет прогнозировать потребность в водителях и применять динамическое ценообразование.</p>
+                <div class="chart-container">
+                    <canvas id="peakHoursChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-1 text-gray-900">Популярные маршруты</h2>
+                <p class="text-gray-600 mb-4">Выявление самых частых маршрутов помогает понять транспортные коридоры города и выявить потенциальные "узкие места", где чаще всего возникают задержки.</p>
+                <div class="chart-container">
+                    <canvas id="popularRoutesChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-1 text-gray-900">Анализ безопасности поездок</h2>
+                <p class="text-gray-600 mb-4">Модель классифицирует поездки на основе аномалий (резкие отклонения от маршрута, длительные остановки). Это первый шаг к созданию проактивной системы безопасности.</p>
+                <div class="chart-container">
+                    <canvas id="safetyAnalysisChart"></canvas>
+                </div>
+                <div class="mt-4 flex flex-col items-start space-y-2">
+                    <button id="analyzeTripBtn" class="bg-[#FF8066] text-white px-4 py-2 rounded-lg font-bold shadow-md hover:bg-[#FF664C] transition-colors">Анализ аномальной поездки ✨</button>
+                    <div id="gemini-output" class="hidden"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-1 text-gray-900">Внедрение в продукт</h2>
+                <p class="text-gray-600 mb-4">Решение "Pulse" легко интегрируется в ключевые процессы компании для повышения эффективности и качества сервиса.</p>
+                <div class="space-y-4 mt-6">
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4">🚀</span>
+                        <div>
+                            <h3 class="font-bold text-lg">Оптимизация аллокации</h3>
+                            <p class="text-gray-600">Направляем водителей в зоны прогнозируемого спроса, сокращая время ожидания для пассажиров.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4">📈</span>
+                        <div>
+                            <h3 class="font-bold text-lg">Стратегическое планирование</h3>
+                            <p class="text-gray-600">Анализируем данные для запуска таргетированных маркетинговых кампаний и планирования расширения.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-3xl mr-4">🛡️</span>
+                        <div>
+                            <h3 class="font-bold text-lg">Повышение безопасности</h3>
+                            <p class="text-gray-600">Автоматически флагируем необычные поездки для проверки службой поддержки.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button id="summarizeDashboardBtn" class="bg-[#845EC2] text-white px-4 py-2 rounded-lg font-bold shadow-md hover:bg-[#6e4e9e] transition-colors">Аудио-сводка ✨</button>
+                    <audio id="audioPlayer" controls class="mt-4 hidden w-full"></audio>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900">Технологический процесс</h2>
+                 <p class="text-gray-600 mb-6">От сырых данных к ценным инсайтам с полным сохранением анонимности.</p>
+                <div class="flex flex-col md:flex-row items-center justify-around space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="text-center">
+                        <div class="flowchart-node p-4 rounded-lg shadow">Сырые геотреки</div>
+                    </div>
+                    <div class="flowchart-arrow transform md:-rotate-0">↓</div>
+                    <div class="text-center">
+                        <div class="flowchart-node p-4 rounded-lg shadow">Анонимизация (k-anonymity)</div>
+                    </div>
+                    <div class="flowchart-arrow transform md:-rotate-0">↓</div>
+                    <div class="text-center">
+                         <div class="flowchart-node p-4 rounded-lg shadow">Кластеризация (DBSCAN)</div>
+                    </div>
+                    <div class="flowchart-arrow transform md:-rotate-0">↓</div>
+                    <div class="text-center">
+                         <div class="flowchart-node p-4 rounded-lg shadow">Агрегация и Визуализация</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p>&copy; 2025 Прототип для хакатона. Все данные являются симуляцией.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const energeticPalette = {
+                purple: '#845EC2',
+                pink: '#FF8066',
+                yellow: '#FFC75F',
+                cyan: '#00C9A7',
+                lightCyan: '#C4FCEF',
+                text: '#2d3748',
+                grid: '#e2e8f0'
+            };
+
+            const defaultTooltipConfig = {
+                callbacks: {
+                    title: function(tooltipItems) {
+                        const item = tooltipItems[0];
+                        let label = item.chart.data.labels[item.dataIndex];
+                        if (Array.isArray(label)) {
+                            return label.join(' ');
+                        } else {
+                            return label;
+                        }
+                    }
+                }
+            };
+            
+            function wrapLabel(label, maxWidth = 16) {
+                if (typeof label !== 'string' || label.length <= maxWidth) {
+                    return label;
+                }
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + ' ' + word).trim().length > maxWidth) {
+                        lines.push(currentLine.trim());
+                        currentLine = word;
+                    } else {
+                        currentLine = (currentLine + ' ' + word).trim();
+                    }
+                });
+                if (currentLine) {
+                    lines.push(currentLine.trim());
+                }
+                return lines;
+            }
+
+            if (document.getElementById('demandHotspotsChart')) {
+                const canvas = document.getElementById('demandHotspotsChart');
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                const ctx = canvas.getContext('2d');
+                new Chart(ctx, {
+                    type: 'bubble',
+                    data: {
+                        datasets: [{
+                            label: 'Центр Города',
+                            data: [{x: 20, y: 30, r: 25}],
+                            backgroundColor: energeticPalette.purple + 'BF'
+                        }, {
+                            label: 'Спальный Район 1',
+                            data: [{x: 40, y: 10, r: 18}],
+                            backgroundColor: energeticPalette.pink + 'BF'
+                        }, {
+                            label: 'Бизнес-квартал',
+                            data: [{x: 15, y: 50, r: 22}],
+                            backgroundColor: energeticPalette.yellow + 'BF'
+                        }, {
+                            label: 'Парковая зона',
+                            data: [{x: 50, y: 55, r: 12}],
+                            backgroundColor: energeticPalette.cyan + 'BF'
+                        }, {
+                            label: 'Университетский городок',
+                            data: [{x: 30, y: 25, r: 15}],
+                             backgroundColor: energeticPalette.purple + '8F'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                             x: { display: false },
+                             y: { display: false }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: defaultTooltipConfig
+                        }
+                    }
+                });
+            }
+            
+            if (document.getElementById('peakHoursChart')) {
+                const canvas = document.getElementById('peakHoursChart');
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                const ctx = canvas.getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+                        datasets: [{
+                            label: 'Количество поездок',
+                            data: [120, 80, 250, 800, 450, 500, 1100, 600],
+                            borderColor: energeticPalette.purple,
+                            backgroundColor: energeticPalette.purple + '33',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, grid: { color: energeticPalette.grid } }, x: { grid: { color: energeticPalette.grid } } },
+                        plugins: {
+                             legend: { display: false },
+                             tooltip: defaultTooltipConfig
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('popularRoutesChart')) {
+                const canvas = document.getElementById('popularRoutesChart');
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                const ctx = canvas.getContext('2d');
+                const rawLabels = [
+                    'Центр - Аэропорт',
+                    'Спальный Район 1 - Бизнес-квартал',
+                    'Вокзал - Центр',
+                    'Университет - Спальный Район 2',
+                    'ТЦ Мега - Парк Культуры'
+                ];
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: rawLabels.map(l => wrapLabel(l)),
+                        datasets: [{
+                            label: 'Частота',
+                            data: [1250, 980, 850, 720, 610],
+                            backgroundColor: [
+                                energeticPalette.purple,
+                                energeticPalette.pink,
+                                energeticPalette.yellow,
+                                energeticPalette.cyan,
+                                energeticPalette.purple + '99',
+                            ],
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: energeticPalette.grid } },
+                            y: { grid: { display: false } }
+                        },
+                        plugins: {
+                             legend: { display: false },
+                             tooltip: defaultTooltipConfig
+                        }
+                    }
+                });
+            }
+            
+            if (document.getElementById('safetyAnalysisChart')) {
+                const canvas = document.getElementById('safetyAnalysisChart');
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                const ctx = canvas.getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Стандартные', 'Аномальные'],
+                        datasets: [{
+                            data: [98.5, 1.5],
+                            backgroundColor: [energeticPalette.cyan, energeticPalette.pink],
+                            borderColor: '#ffffff',
+                            borderWidth: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                             legend: { position: 'bottom' },
+                             tooltip: defaultTooltipConfig
+                        }
+                    }
+                });
+            }
+
+            const analyzeTripBtn = document.getElementById('analyzeTripBtn');
+            const summarizeDashboardBtn = document.getElementById('summarizeDashboardBtn');
+            const geminiOutput = document.getElementById('gemini-output');
+            const audioPlayer = document.getElementById('audioPlayer');
+
+            const API_KEY = "";
+
+            const showLoading = (el) => {
+                el.innerHTML = '<div class="spinner"></div>';
+                el.classList.remove('hidden');
+            };
+
+            const hideLoading = (el) => {
+                el.innerHTML = '';
+                el.classList.add('hidden');
+            };
+
+            const convertBase64ToWav = (base64Data) => {
+                const pcmData = atob(base64Data);
+                const arrayBuffer = new ArrayBuffer(pcmData.length);
+                const view = new Uint8Array(arrayBuffer);
+                for (let i = 0; i < pcmData.length; i++) {
+                    view[i] = pcmData.charCodeAt(i);
+                }
+                const sampleRate = 16000;
+                const pcm16 = new Int16Array(arrayBuffer);
+                const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+                const view8 = new DataView(buffer);
+                
+                function writeString(view, offset, string) {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                }
+
+                writeString(view8, 0, 'RIFF');
+                view8.setUint32(4, 36 + pcm16.length * 2, true);
+                writeString(view8, 8, 'WAVE');
+                writeString(view8, 12, 'fmt ');
+                view8.setUint32(16, 16, true);
+                view8.setUint16(20, 1, true);
+                view8.setUint16(22, 1, true);
+                view8.setUint32(24, sampleRate, true);
+                view8.setUint32(28, sampleRate * 2, true);
+                view8.setUint16(32, 2, true);
+                view8.setUint16(34, 16, true);
+                writeString(view8, 36, 'data');
+                view8.setUint32(40, pcm16.length * 2, true);
+                
+                for (let i = 0; i < pcm16.length; i++) {
+                    view8.setInt16(44 + i * 2, pcm16[i], true);
+                }
+
+                return new Blob([view8], { type: 'audio/wav' });
+            };
+
+            analyzeTripBtn.addEventListener('click', async () => {
+                showLoading(geminiOutput);
+                const mockTripData = {
+                    start: 'Улица Ленина, 15',
+                    end: 'Улица Пушкина, 37',
+                    duration: '25 минут',
+                    distance: '7.8 км',
+                    deviations: '2 больших отклонения от маршрута',
+                    speed: 'резкие изменения скорости',
+                    stops: 'остановка на 10 минут в необычном месте'
+                };
+                
+                const prompt = `Как аналитик безопасности, проанализируйте следующую поездку и объясните, почему она может считаться аномальной, основываясь на данных:
+                - Начало: ${mockTripData.start}
+                - Конец: ${mockTripData.end}
+                - Продолжительность: ${mockTripData.duration}
+                - Расстояние: ${mockTripData.distance}
+                - Отклонения: ${mockTripData.deviations}
+                - Скорость: ${mockTripData.speed}
+                - Остановки: ${mockTripData.stops}
+                Сделайте вывод, указав потенциальную причину аномалии.`;
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "Вы опытный аналитик по безопасности." }] },
+                        })
+                    });
+                    const result = await response.json();
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Не удалось сгенерировать анализ.";
+                    geminiOutput.innerHTML = `<p>${text}</p>`;
+                } catch (error) {
+                    console.error('Ошибка Gemini API:', error);
+                    geminiOutput.innerHTML = `<p>Произошла ошибка при анализе поездки. Попробуйте еще раз.</p>`;
+                } finally {
+                    hideLoading(geminiOutput);
+                    geminiOutput.classList.remove('hidden');
+                }
+            });
+
+            summarizeDashboardBtn.addEventListener('click', async () => {
+                showLoading(summarizeDashboardBtn);
+                audioPlayer.classList.add('hidden');
+                audioPlayer.pause();
+                
+                const prompt = "Дайте четкую и краткую сводку по ключевым показателям этого дашборда: количество треков, прогноз роста спроса и сокращение времени подачи. Затем кратко опишите, какие инсайты показывают графики пиковых часов, популярных маршрутов и анализ безопасности.";
+                
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                responseModalities: ["AUDIO"],
+                                speechConfig: {
+                                    voiceConfig: {
+                                        prebuiltVoiceConfig: { voiceName: "Rasalgethi" }
+                                    }
+                                }
+                            },
+                            model: "gemini-2.5-flash-preview-tts"
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Ошибка сети или API');
+                    
+                    const result = await response.json();
+                    const audioPart = result?.candidates?.[0]?.content?.parts?.[0];
+
+                    if (audioPart && audioPart.inlineData && audioPart.inlineData.data) {
+                        const audioData = audioPart.inlineData.data;
+                        const wavBlob = convertBase64ToWav(audioData);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.classList.remove('hidden');
+                        audioPlayer.play();
+                    } else {
+                        throw new Error("Не удалось получить аудиоданные.");
+                    }
+
+                } catch (error) {
+                    console.error('Ошибка TTS API:', error);
+                    alert("Произошла ошибка при создании аудио-сводки. Пожалуйста, попробуйте еще раз.");
+                } finally {
+                    hideLoading(summarizeDashboardBtn);
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
