@@ -1,0 +1,23 @@
+{
+  "name": "indrive-pulse-dashboard",
+  "version": "1.0.0",
+  "description": "inDrive Pulse - Urban Mobility Intelligence Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "echo 'Static site - no build needed'",
+    "dev": "npx serve . -l 3000"
+  },
+  "keywords": [
+    "dashboard",
+    "analytics",
+    "mobility",
+    "visualization",
+    "indrive"
+  ],
+  "author": "inDrive Team",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}
